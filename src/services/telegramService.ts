@@ -104,12 +104,15 @@ export async function saveServerTelegramToken(params: {
   auto_notify_recurring_fault?: boolean;
 }): Promise<{ success: boolean; config?: any; error?: string }> {
   try {
-    const res = await fetch('/api/telegram/save-token', {
+    const res = await safeFetchJson('/api/telegram/save-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    return await res.json();
+    if (res.isJson && res.data) {
+      return res.data;
+    }
+    return { success: res.ok };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -154,16 +157,15 @@ async function executeSyncOperationalState(
   fingerprint: string
 ): Promise<{ success: boolean; skipped?: boolean }> {
   try {
-    const res = await fetch('/api/telegram/operational-state', {
+    const res = await safeFetchJson('/api/telegram/operational-state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
     });
-    const json = await res.json();
-    if (json?.success) {
+    if (res.isJson && res.data?.success) {
       lastSyncedOperationalFingerprint = fingerprint;
     }
-    return json;
+    return res.data || { success: res.ok };
   } catch (err) {
     return { success: false };
   }
@@ -222,7 +224,47 @@ export async function syncOperationalStateToServer(
 }
 
 /**
- * Check Bot Status from server or custom token
+ * Safe JSON fetch helper to prevent SyntaxError on non-JSON/HTML responses
+ */
+async function safeFetchJson<T = any>(
+  url: string,
+  init?: RequestInit
+): Promise<{ isJson: boolean; ok: boolean; status: number; data?: T }> {
+  try {
+    const res = await fetch(url, init);
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json') || res.status === 404) {
+      return { isJson: false, ok: false, status: res.status };
+    }
+    const data = await res.json();
+    return { isJson: true, ok: res.ok, status: res.status, data };
+  } catch (e) {
+    return { isJson: false, ok: false, status: 0 };
+  }
+}
+
+/**
+ * Convert Base64 data URL to Blob for direct Telegram upload
+ */
+function dataUrlToBlob(dataUrl: string): Blob {
+  try {
+    const parts = dataUrl.split(',');
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (e) {
+    return new Blob([], { type: 'image/jpeg' });
+  }
+}
+
+/**
+ * Check Bot Status from server or custom token (supports direct Telegram API fallback on static hosts)
  */
 export async function checkTelegramBotStatus(customToken?: string): Promise<{
   configured: boolean;
@@ -238,18 +280,48 @@ export async function checkTelegramBotStatus(customToken?: string): Promise<{
   };
   error?: string;
 }> {
-  try {
-    const url = customToken
+  const token = (customToken || getStoredTelegramConfig().bot_token || '').trim();
+
+  // 1. Try server endpoint first
+  const serverRes = await safeFetchJson<any>(
+    customToken
       ? `/api/telegram/status?token=${encodeURIComponent(customToken)}`
-      : '/api/telegram/status';
-    const res = await fetch(url);
-    return await res.json();
-  } catch (err: any) {
-    return {
-      configured: false,
-      error: err.message || 'Gagal menghubungi server API Telegram',
-    };
+      : '/api/telegram/status'
+  );
+
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
   }
+
+  // 2. Direct client fallback via api.telegram.org (for GitHub Pages / static hosts)
+  if (token) {
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+      const tgData = await tgRes.json().catch(() => ({}));
+      if (tgRes.ok && tgData.ok && tgData.result) {
+        return {
+          configured: true,
+          bot_id: tgData.result.id,
+          bot_name: tgData.result.first_name,
+          bot_username: tgData.result.username,
+        };
+      }
+      return {
+        configured: false,
+        error: tgData.description || 'Token bot tidak valid pada Telegram API (@BotFather).',
+      };
+    } catch (err: any) {
+      return {
+        configured: false,
+        error: 'Tidak dapat menghubungi api.telegram.org: ' + err.message,
+      };
+    }
+  }
+
+  return {
+    configured: false,
+    error: 'Token bot belum diisi di Pengaturan Telegram.',
+  };
 }
 
 /**
@@ -259,23 +331,69 @@ export async function testTelegramBotConnection(
   token?: string,
   chatId?: string
 ): Promise<{ success: boolean; bot?: any; message?: string; error?: string }> {
+  const config = getStoredTelegramConfig();
+  const effectiveToken = (token || config.bot_token || '').trim();
+  const effectiveChatId = (chatId || config.chat_id || '').trim();
+
+  if (effectiveToken) {
+    saveServerTelegramToken({ token: effectiveToken, chat_id: effectiveChatId }).catch(() => {});
+  }
+
+  // Try server endpoint first
+  const serverRes = await safeFetchJson<any>('/api/telegram/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: effectiveToken || undefined,
+      chat_id: effectiveChatId || undefined,
+    }),
+  });
+
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
+  }
+
+  // Direct client fallback
+  if (!effectiveToken) {
+    return {
+      success: false,
+      error: 'Token bot wajib diisi untuk melakukan tes koneksi.',
+    };
+  }
+  if (!effectiveChatId) {
+    return {
+      success: false,
+      error: 'Chat ID tujuan wajib diisi untuk melakukan tes koneksi.',
+    };
+  }
+
   try {
-    if (token) {
-      saveServerTelegramToken({ token, chat_id: chatId }).catch(() => {});
-    }
-    const res = await fetch('/api/telegram/test', {
+    const testMsg = `🤖 <b>Tes Koneksi Bot Berhasil!</b>\n\nSistem Pemeliharaan X-Ray Bandara Halim Perdanakusuma berhasil terhubung dengan bot Telegram ini.\n\n🕒 Waktu: <code>${new Date().toLocaleString('id-ID')}</code>`;
+    const res = await fetch(`https://api.telegram.org/bot${effectiveToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        token: token || undefined,
-        chat_id: chatId || undefined,
+        chat_id: effectiveChatId,
+        text: testMsg,
+        parse_mode: 'HTML',
       }),
     });
-    return await res.json();
-  } catch (err: any) {
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      return {
+        success: true,
+        message: 'Pesan tes berhasil dikirim langsung ke Telegram!',
+      };
+    }
     return {
       success: false,
-      error: err.message || 'Koneksi ke server gagal',
+      error: data.description || 'Gagal mengirim pesan tes ke Telegram API.',
+    };
+  } catch (e: any) {
+    return {
+      success: false,
+      error: 'Gagal menghubungi Telegram API: ' + e.message,
     };
   }
 }
@@ -290,9 +408,22 @@ export async function fetchTelegramSubscribers(): Promise<{
   activeCount: number;
   error?: string;
 }> {
+  const serverRes = await safeFetchJson<any>('/api/telegram/subscribers');
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
+  }
+
+  // Local storage fallback for static hosts
   try {
-    const res = await fetch('/api/telegram/subscribers');
-    return await res.json();
+    const localRaw = localStorage.getItem('xray_telegram_subscribers');
+    const subscribers: TelegramSubscriber[] = localRaw ? JSON.parse(localRaw) : [];
+    const active = subscribers.filter((s) => s.is_active);
+    return {
+      success: true,
+      subscribers,
+      total: subscribers.length,
+      activeCount: active.length,
+    };
   } catch (err: any) {
     return {
       success: false,
@@ -315,26 +446,77 @@ export async function syncTelegramUpdates(token?: string): Promise<{
   message: string;
   error?: string;
 }> {
+  const config = getStoredTelegramConfig();
+  const effectiveToken = (token || config.bot_token || '').trim();
+
+  // Try server endpoint
+  const serverRes = await safeFetchJson<any>('/api/telegram/sync-updates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: effectiveToken || undefined }),
+  });
+
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
+  }
+
+  // Direct client fallback to getUpdates
+  if (!effectiveToken) {
+    return {
+      success: false,
+      newDetectedCount: 0,
+      totalSubscribers: 0,
+      subscribers: [],
+      message: '',
+      error: 'Token bot wajib diisi untuk mendeteksi Chat ID secara otomatis.',
+    };
+  }
+
   try {
-    const config = getStoredTelegramConfig();
-    const effectiveToken = token || config.bot_token || undefined;
-    const res = await fetch('/api/telegram/sync-updates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: effectiveToken }),
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
+    const res = await fetch(`https://api.telegram.org/bot${effectiveToken}/getUpdates`);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.ok) {
       return {
         success: false,
         newDetectedCount: 0,
         totalSubscribers: 0,
         subscribers: [],
         message: '',
-        error: errData.error || errData.message || `HTTP ${res.status}: Gagal sinkronisasi`,
+        error: data.description || 'Gagal mengambil pembaruan dari Telegram Bot.',
       };
     }
-    return await res.json();
+
+    const updates = data.result || [];
+    const detectedChats = new Map<string, TelegramSubscriber>();
+
+    updates.forEach((u: any) => {
+      const msg = u.message || u.channel_post || u.my_chat_member?.chat;
+      if (msg?.chat?.id) {
+        const chatId = String(msg.chat.id);
+        const name = msg.chat.title || [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(' ') || 'Pengguna Telegram';
+        detectedChats.set(chatId, {
+          chat_id: chatId,
+          name,
+          username: msg.chat.username || msg.from?.username,
+          type: (msg.chat.type === 'group' || msg.chat.type === 'supergroup') ? 'group' : (msg.chat.type === 'channel' ? 'channel' : 'private'),
+          is_active: true,
+          first_seen: new Date().toISOString(),
+          last_active: new Date().toISOString(),
+        });
+      }
+    });
+
+    const subscriberList = Array.from(detectedChats.values());
+    localStorage.setItem('xray_telegram_subscribers', JSON.stringify(subscriberList));
+
+    return {
+      success: true,
+      newDetectedCount: subscriberList.length,
+      totalSubscribers: subscriberList.length,
+      subscribers: subscriberList,
+      message: subscriberList.length > 0 ? `Berhasil mendeteksi ${subscriberList.length} chat/grup Telegram!` : 'Belum ada pesan baru. Pastikan Anda sudah membuka bot dan menekan /start di Telegram.',
+    };
   } catch (err: any) {
     return {
       success: false,
@@ -342,7 +524,7 @@ export async function syncTelegramUpdates(token?: string): Promise<{
       totalSubscribers: 0,
       subscribers: [],
       message: '',
-      error: err.message || 'Gagal sinkronisasi pembaruan',
+      error: err.message || 'Gagal menghubungi Telegram API',
     };
   }
 }
@@ -353,19 +535,30 @@ export async function syncTelegramUpdates(token?: string): Promise<{
 export async function updateTelegramSubscriber(
   subscriber: Partial<TelegramSubscriber> & { chat_id: string }
 ): Promise<{ success: boolean; subscribers: TelegramSubscriber[]; error?: string }> {
+  const serverRes = await safeFetchJson<any>('/api/telegram/subscribers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(subscriber),
+  });
+
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
+  }
+
+  // Local fallback
   try {
-    const res = await fetch('/api/telegram/subscribers', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(subscriber),
-    });
-    return await res.json();
+    const raw = localStorage.getItem('xray_telegram_subscribers');
+    let list: TelegramSubscriber[] = raw ? JSON.parse(raw) : [];
+    const idx = list.findIndex((s) => s.chat_id === subscriber.chat_id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...subscriber };
+    } else {
+      list.push(subscriber as TelegramSubscriber);
+    }
+    localStorage.setItem('xray_telegram_subscribers', JSON.stringify(list));
+    return { success: true, subscribers: list };
   } catch (err: any) {
-    return {
-      success: false,
-      subscribers: [],
-      error: err.message || 'Gagal memperbarui subscriber',
-    };
+    return { success: false, subscribers: [], error: err.message };
   }
 }
 
@@ -375,17 +568,23 @@ export async function updateTelegramSubscriber(
 export async function deleteTelegramSubscriber(
   chatId: string
 ): Promise<{ success: boolean; subscribers: TelegramSubscriber[]; error?: string }> {
+  const serverRes = await safeFetchJson<any>(`/api/telegram/subscribers/${encodeURIComponent(chatId)}`, {
+    method: 'DELETE',
+  });
+
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
+  }
+
+  // Local fallback
   try {
-    const res = await fetch(`/api/telegram/subscribers/${encodeURIComponent(chatId)}`, {
-      method: 'DELETE',
-    });
-    return await res.json();
+    const raw = localStorage.getItem('xray_telegram_subscribers');
+    let list: TelegramSubscriber[] = raw ? JSON.parse(raw) : [];
+    list = list.filter((s) => s.chat_id !== chatId);
+    localStorage.setItem('xray_telegram_subscribers', JSON.stringify(list));
+    return { success: true, subscribers: list };
   } catch (err: any) {
-    return {
-      success: false,
-      subscribers: [],
-      error: err.message || 'Gagal menghapus subscriber',
-    };
+    return { success: false, subscribers: [], error: err.message };
   }
 }
 
@@ -396,23 +595,40 @@ export async function setTelegramWebhook(
   webhookUrl: string,
   token?: string
 ): Promise<{ success: boolean; message?: string; error?: string }> {
+  const config = getStoredTelegramConfig();
+  const effectiveToken = (token || config.bot_token || '').trim();
+
+  const serverRes = await safeFetchJson<any>('/api/telegram/set-webhook', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      webhook_url: webhookUrl,
+      token: effectiveToken || undefined,
+    }),
+  });
+
+  if (serverRes.isJson && serverRes.data) {
+    return serverRes.data;
+  }
+
+  if (!effectiveToken) {
+    return { success: false, error: 'Token bot belum diisi' };
+  }
+
   try {
-    const config = getStoredTelegramConfig();
-    const effectiveToken = token || config.bot_token || undefined;
-    const res = await fetch('/api/telegram/set-webhook', {
+    const res = await fetch(`https://api.telegram.org/bot${effectiveToken}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        webhook_url: webhookUrl,
-        token: effectiveToken,
-      }),
+      body: JSON.stringify({ url: webhookUrl }),
     });
-    return await res.json();
-  } catch (err: any) {
+    const data = await res.json().catch(() => ({}));
     return {
-      success: false,
-      error: err.message || 'Gagal mengatur webhook Telegram',
+      success: res.ok && data.ok,
+      message: data.description,
+      error: data.ok ? undefined : data.description,
     };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
 
@@ -436,41 +652,74 @@ export async function sendTelegramPhoto(params: {
 }> {
   try {
     const config = getStoredTelegramConfig();
-    const effectiveToken = params.token || config.bot_token || undefined;
-    const effectiveChatId = params.chatId || config.chat_id || undefined;
+    const effectiveToken = (params.token || config.bot_token || '').trim();
+    const effectiveChatId = (params.chatId || config.chat_id || '').trim();
     const shouldBroadcast =
       params.broadcastAll !== undefined
         ? params.broadcastAll
         : config.broadcast_to_all_subscribers;
 
-    const res = await fetch('/api/telegram/send', {
+    // Try server endpoint first
+    const serverRes = await safeFetchJson<any>('/api/telegram/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         photo: params.photo,
         caption: params.caption,
         message: params.caption,
-        chat_id: effectiveChatId,
-        token: effectiveToken,
+        chat_id: effectiveChatId || undefined,
+        token: effectiveToken || undefined,
         broadcast_all: shouldBroadcast,
         parse_mode: params.parseMode || 'HTML',
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    if (serverRes.isJson && serverRes.data) {
+      if (serverRes.data.success) {
+        return serverRes.data;
+      }
+    }
+
+    // Direct client fallback to api.telegram.org
+    if (!effectiveToken || !effectiveChatId) {
       return {
         success: false,
-        error: data.error || 'Gagal mengirim foto presensi ke Telegram',
+        error: 'Token bot atau Chat ID Telegram belum dikonfigurasi di menu Pengaturan.',
+      };
+    }
+
+    const formData = new FormData();
+    formData.append('chat_id', effectiveChatId);
+    if (params.caption) {
+      formData.append('caption', params.caption);
+      formData.append('parse_mode', params.parseMode || 'HTML');
+    }
+
+    if (params.photo.startsWith('data:')) {
+      const blob = dataUrlToBlob(params.photo);
+      formData.append('photo', blob, 'attendance.jpg');
+    } else {
+      formData.append('photo', params.photo);
+    }
+
+    const res = await fetch(`https://api.telegram.org/bot${effectiveToken}/sendPhoto`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      return {
+        success: true,
+        messageId: data.result?.message_id,
+        sentCount: 1,
+        totalTargets: 1,
       };
     }
 
     return {
-      success: true,
-      messageId: data.messageId,
-      broadcast: data.broadcast,
-      sentCount: data.sentCount,
-      totalTargets: data.totalTargets,
+      success: false,
+      error: data.description || 'Gagal mengirim foto ke Telegram API',
     };
   } catch (err: any) {
     return {
@@ -499,39 +748,63 @@ export async function sendTelegramMessage(params: {
 }> {
   try {
     const config = getStoredTelegramConfig();
-    const effectiveToken = params.token || config.bot_token || undefined;
-    const effectiveChatId = params.chatId || config.chat_id || undefined;
+    const effectiveToken = (params.token || config.bot_token || '').trim();
+    const effectiveChatId = (params.chatId || config.chat_id || '').trim();
     const shouldBroadcast =
       params.broadcastAll !== undefined
         ? params.broadcastAll
         : config.broadcast_to_all_subscribers;
 
-    const res = await fetch('/api/telegram/send', {
+    // Try server endpoint first
+    const serverRes = await safeFetchJson<any>('/api/telegram/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: params.message,
-        chat_id: effectiveChatId,
-        token: effectiveToken,
+        chat_id: effectiveChatId || undefined,
+        token: effectiveToken || undefined,
         broadcast_all: shouldBroadcast,
         parse_mode: params.parseMode || 'HTML',
       }),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.success) {
+    if (serverRes.isJson && serverRes.data) {
+      if (serverRes.data.success) {
+        return serverRes.data;
+      }
+    }
+
+    // Direct client fallback to api.telegram.org
+    if (!effectiveToken || !effectiveChatId) {
       return {
         success: false,
-        error: data.error || 'Gagal mengirim pesan ke Telegram',
+        error: 'Token bot atau Chat ID Telegram belum dikonfigurasi di menu Pengaturan.',
+      };
+    }
+
+    const res = await fetch(`https://api.telegram.org/bot${effectiveToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: effectiveChatId,
+        text: params.message,
+        parse_mode: params.parseMode || 'HTML',
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      return {
+        success: true,
+        messageId: data.result?.message_id,
+        sentCount: 1,
+        totalTargets: 1,
       };
     }
 
     return {
-      success: true,
-      messageId: data.messageId,
-      broadcast: data.broadcast,
-      sentCount: data.sentCount,
-      totalTargets: data.totalTargets,
+      success: false,
+      error: data.description || 'Gagal mengirim pesan Telegram via client fallback',
     };
   } catch (err: any) {
     return {
