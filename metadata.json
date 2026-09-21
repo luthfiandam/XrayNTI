@@ -1,0 +1,6 @@
+{
+  "name": "X-Ray Reporting App",
+  "description": "X-Ray & Security Equipment reporting application for PT. Nararya Teknologi Indonesia with photo & GPS attendance verification, preventive/corrective workflows, WhatsApp report generation, and monitoring dashboard.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
