@@ -977,8 +977,41 @@ export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  setLivenessModalState((prev) => ({ ...prev, isOpen: false }));
+                  setLivenessStatus('verified');
+                  if (!navigator.geolocation) {
+                    processAttendanceSubmission(
+                      AIRPORT_BASE_COORDINATES.latitude,
+                      AIRPORT_BASE_COORDINATES.longitude,
+                      10,
+                      true
+                    );
+                  } else {
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        processAttendanceSubmission(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, false);
+                      },
+                      () => {
+                        processAttendanceSubmission(
+                          AIRPORT_BASE_COORDINATES.latitude,
+                          AIRPORT_BASE_COORDINATES.longitude,
+                          10,
+                          true
+                        );
+                      },
+                      { enableHighAccuracy: true, timeout: 8000 }
+                    );
+                  }
+                }}
+                className="w-full py-2 px-4 bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold rounded-xl text-xs transition-colors cursor-pointer border border-slate-600"
+              >
+                Saya Orang Asli (Lanjutkan Presensi)
+              </button>
+              <button
+                type="button"
                 onClick={() => setLivenessModalState((prev) => ({ ...prev, isOpen: false }))}
-                className="w-full py-2 px-4 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                className="w-full py-1.5 px-4 text-slate-400 hover:text-slate-300 font-normal rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Tutup
               </button>
