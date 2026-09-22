@@ -332,9 +332,7 @@ process.on("unhandledRejection", (reason, promise) => {
 
 async function startServer() {
   const app = express();
-
-  // Port configuration: defaults to 3000, or process.env.PORT in production/Cloud Run
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = 3000;
 
   // JSON parser with high limit for HTML payload with images
   app.use(express.json({ limit: "50mb" }));
@@ -2369,7 +2367,7 @@ Return ONLY a JSON response matching the following schema:
   });
 
   // Vite middleware for development vs static asset serving for production
-  const isDevMode = process.env.NODE_ENV !== "production" || process.env.USE_DEV_SERVER !== "false";
+  const isDevMode = process.env.NODE_ENV !== "production";
   const distPath = path.join(process.cwd(), "dist");
 
   if (isDevMode) {

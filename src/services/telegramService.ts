@@ -146,6 +146,16 @@ function getOperationalStateFingerprint(params: {
   return `${date}|${shift}|${techs}|${eqSummary}|${crSummary}`;
 }
 
+/**
+ * Helper to detect if running on a purely static host (e.g., GitHub Pages, static SPA)
+ * where /api/* backend endpoints do not exist.
+ */
+function isStaticOnlyHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  return host.endsWith('.github.io') || host.endsWith('.pages.dev') || host.endsWith('.surge.sh');
+}
+
 async function executeSyncOperationalState(
   params: {
     operationalDate?: string;
@@ -156,6 +166,12 @@ async function executeSyncOperationalState(
   },
   fingerprint: string
 ): Promise<{ success: boolean; skipped?: boolean }> {
+  // If running on static host like GitHub Pages, skip server-side endpoint call silently
+  if (isStaticOnlyHost()) {
+    lastSyncedOperationalFingerprint = fingerprint;
+    return { success: true, skipped: true };
+  }
+
   try {
     const res = await safeFetchJson('/api/telegram/operational-state', {
       method: 'POST',
