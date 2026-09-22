@@ -28,6 +28,7 @@ import { ScheduleView } from './components/ScheduleView';
 import { EquipmentTimelineView } from './components/EquipmentTimelineView';
 import { EquipmentCatalogView } from './components/EquipmentCatalogView';
 import { TelegramBotModal } from './components/TelegramBotModal';
+import { SupabaseDiagnosticModal } from './components/SupabaseDiagnosticModal';
 import { AttendanceScreen } from './components/AttendanceScreen';
 import { QrScannerModal } from './components/QrScannerModal';
 import { MachineQrModal } from './components/MachineQrModal';
@@ -126,6 +127,7 @@ export default function App() {
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isSupervisorLoginOpen, setIsSupervisorLoginOpen] = useState(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [isQrScannerModalOpen, setIsQrScannerModalOpen] = useState(false);
   const [qrModalEquipment, setQrModalEquipment] = useState<Equipment | null>(null);
@@ -548,6 +550,7 @@ export default function App() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
         activeReportSubTab={reportSubTab}
         onSelectReportSubTab={setReportSubTab}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
       {/* Main Views Layout */}
@@ -822,6 +825,17 @@ export default function App() {
       <TelegramBotModal
         isOpen={isTelegramModalOpen}
         onClose={() => setIsTelegramModalOpen(false)}
+      />
+
+      {/* Supabase Cloud Connection / Diagnostic Modal */}
+      <SupabaseDiagnosticModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => {
+          setIsSupabaseModalOpen(false);
+          // Trigger refresh from cloud and schedule when modal is closed
+          syncData.syncFromCloud(undefined, undefined, true);
+          shiftSession.refreshSchedule();
+        }}
       />
 
       {/* Attendance Modal (opened on demand from Sidebar) */}

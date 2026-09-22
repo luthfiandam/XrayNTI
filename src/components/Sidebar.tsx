@@ -62,6 +62,7 @@ interface SidebarProps {
   setIsMobileMenuOpen?: (open: boolean) => void;
   activeReportSubTab?: ReportSubTab;
   onSelectReportSubTab?: (subTab: ReportSubTab) => void;
+  onOpenSupabaseModal?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -91,6 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileMenuOpen: controlledSetIsMobileMenuOpen,
   activeReportSubTab,
   onSelectReportSubTab,
+  onOpenSupabaseModal,
 }) => {
   const [internalMobileMenuOpen, setInternalMobileMenuOpen] = useState(false);
   const isMobileMenuOpen = controlledIsMobileMenuOpen !== undefined ? controlledIsMobileMenuOpen : internalMobileMenuOpen;
@@ -246,7 +248,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* Cloud Sync Status Indicator */}
               <div className="pt-1.5 border-t border-slate-200 flex flex-col gap-1 text-[10px]">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onOpenSupabaseModal) {
+                        onOpenSupabaseModal();
+                      }
+                    }}
+                    title={
+                      isCloudMissing
+                        ? 'Konfigurasi belum lengkap. Klik untuk membuka pengaturan Supabase'
+                        : 'Klik untuk cek status/koneksi Supabase Cloud'
+                    }
+                    className="flex items-center gap-1.5 hover:opacity-80 transition cursor-pointer text-left focus:outline-none"
+                  >
                     {isCloudMissing ? (
                       <CloudOff className="w-3.5 h-3.5 text-rose-500" />
                     ) : syncStatus === 'syncing' ? (
@@ -259,7 +274,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span
                       className={`font-semibold ${
                         isCloudMissing
-                          ? 'text-rose-700'
+                          ? 'text-rose-700 underline decoration-dotted underline-offset-2'
                           : syncStatus === 'syncing'
                           ? 'text-slate-700'
                           : syncStatus === 'synced'
@@ -275,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ? 'Tersinkron Cloud'
                         : 'Lokal (Offline)'}
                     </span>
-                  </div>
+                  </button>
                   {!isCloudMissing && onManualSync && (
                     <button
                       onClick={onManualSync}
