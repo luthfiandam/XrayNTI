@@ -1667,8 +1667,8 @@ Return ONLY a JSON response matching the following schema:
 
           const offsetParam = lastProcessedUpdateId > 0 ? `&offset=${lastProcessedUpdateId + 1}` : "";
           const tgRes = await fetch(
-            `https://api.telegram.org/bot${activeToken}/getUpdates?limit=50&timeout=0${offsetParam}`,
-            { signal: AbortSignal.timeout(8000) }
+            `https://api.telegram.org/bot${activeToken}/getUpdates?limit=50&timeout=25${offsetParam}`,
+            { signal: AbortSignal.timeout(30000) }
           );
           const data = (await tgRes.json()) as any;
 
@@ -1700,7 +1700,7 @@ Return ONLY a JSON response matching the following schema:
             }
           }
 
-          await new Promise((r) => setTimeout(r, 2500));
+          await new Promise((r) => setTimeout(r, 500));
         } catch (pollErr: any) {
           // Gracefully suppress common transient network hiccups, timeouts, and socket drops
           const errMsg = String(pollErr?.message || pollErr);

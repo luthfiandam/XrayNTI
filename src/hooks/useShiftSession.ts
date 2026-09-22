@@ -5,6 +5,7 @@ import {
   getOperationalShift,
   resolveActiveSessionStaff,
 } from '../utils/technicianSchedule';
+import { isSupervisorUser } from '../services/scheduleCsvService';
 import { fetchSchedulesForShiftDetailed, buildScheduleDocId, ScheduleFetchStatus } from '../services/scheduleService';
 import { resolveTechnicianNames } from '../utils/entityLookup';
 import {
@@ -241,16 +242,17 @@ export function useShiftSession({
             if (resolved.onDutyIds.length > 0) {
               let scheduledIds = resolved.onDutyIds;
 
-              // Ensure the logged-in technician is actively included and prioritized first in on-duty staff
-              if (loggedInTechnician) {
-                if (!scheduledIds.includes(loggedInTechnician.id)) {
-                  scheduledIds = [loggedInTechnician.id, ...scheduledIds];
-                } else {
-                  scheduledIds = [
-                    loggedInTechnician.id,
-                    ...scheduledIds.filter((id) => id !== loggedInTechnician.id),
-                  ];
-                }
+              // Check if logged-in user is a supervisor (supervisors monitor, they are not duty technicians on checklist)
+              const isLoggedInSupervisor = loggedInTechnician
+                ? isSupervisorUser(loggedInTechnician, technicians)
+                : Boolean(currentUserProfile?.role === 'supervisor');
+
+              // If logged-in user is a regular technician and actually scheduled on-duty, prioritize their position
+              if (loggedInTechnician && !isLoggedInSupervisor && scheduledIds.includes(loggedInTechnician.id)) {
+                scheduledIds = [
+                  loggedInTechnician.id,
+                  ...scheduledIds.filter((id) => id !== loggedInTechnician.id),
+                ];
               }
 
               const scheduledNames = resolveTechnicianNames(scheduledIds, technicians);
@@ -442,6 +444,17 @@ export function useShiftSession({
     };
   }, [isLoggedIn, checkAndUpdateShift, currentUserProfile, currentUserEmail]);
 
+  // Check whether the logged in user is actually scheduled on duty for this shift
+  const isOnDuty = useMemo(() => {
+    if (!loggedInTechnician) {
+      // If supervisor without technician ID, consider as supervisor monitor
+      return currentUserProfile?.role === 'supervisor';
+    }
+    const isSup = isSupervisorUser(loggedInTechnician, technicians);
+    if (isSup) return true; // Supervisor always has operational visibility
+    return currentSession.technician_ids.includes(loggedInTechnician.id);
+  }, [loggedInTechnician, currentUserProfile, technicians, currentSession.technician_ids]);
+
   return {
     currentSession,
     setCurrentSession,
@@ -453,6 +466,7 @@ export function useShiftSession({
     resolutionStatus,
     technicianNames,
     loggedInTechnician,
+    isOnDuty,
     handleSaveShift,
     handleLoginTechnicianSession,
     refreshSchedule: () => checkAndUpdateShift(true),

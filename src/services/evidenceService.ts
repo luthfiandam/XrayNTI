@@ -142,6 +142,13 @@ export async function uploadEvidencePhoto(
  * Uploads an array of Preventive evidences to Google Drive with limited concurrency (max 2).
  * Static delay removed; uses concurrent workers and provides granular performance logging.
  */
+export interface UploadProgressInfo {
+  completed: number;
+  total: number;
+  currentItemName: string;
+  percent: number;
+}
+
 export async function processAndUploadPreventiveEvidences(
   evidences: PreventiveEvidence[],
   folderPath: string,
@@ -151,6 +158,7 @@ export async function processAndUploadPreventiveEvidences(
     operationalDate?: string;
     timeStr?: string;
     collageFolderPath?: string;
+    onProgress?: (progress: UploadProgressInfo) => void;
   }
 ): Promise<{ success: boolean; evidences: PreventiveEvidence[]; folder_url?: string; warning?: string; error?: string }> {
   if (!evidences || evidences.length === 0) {
@@ -164,6 +172,7 @@ export async function processAndUploadPreventiveEvidences(
 
   // Concurrency limit = 2 (optimal throughput without hitting GAS script execution limits)
   const CONCURRENCY_LIMIT = 2;
+  let completedCount = 0;
 
   const processed = await runWithConcurrencyLimit(
     evidences,
@@ -179,8 +188,21 @@ export async function processAndUploadPreventiveEvidences(
         ? (options.collageFolderPath || `${cleanBaseFolder}/Foto Kolase`)
         : `${cleanBaseFolder}/Foto Preventif`;
 
+      const notifyProgress = () => {
+        completedCount++;
+        if (options.onProgress) {
+          options.onProgress({
+            completed: completedCount,
+            total: evidences.length,
+            currentItemName: itemCaption,
+            percent: Math.min(100, Math.round((completedCount / evidences.length) * 100)),
+          });
+        }
+      };
+
       // 1. If already a valid web / Drive URL, reuse immediately (no duplicate request)
       if (isDriveOrWebUrl(candidate)) {
+        notifyProgress();
         return {
           id: item.id || Date.now() + i,
           file_path: candidate,
@@ -212,6 +234,8 @@ export async function processAndUploadPreventiveEvidences(
             itemCaption
           );
 
+          notifyProgress();
+
           if (upload.success && upload.drive_url) {
             if (!resolvedFolderUrl && upload.folder_url) {
               resolvedFolderUrl = upload.folder_url;
@@ -237,6 +261,7 @@ export async function processAndUploadPreventiveEvidences(
             };
           }
         } catch (uploadErr: any) {
+          notifyProgress();
           console.warn(`[EvidenceService] Upload exception for "${itemCaption}":`, uploadErr);
           failures.push(`Foto "${itemCaption}": ${uploadErr?.message || 'Error'}`);
           return {
@@ -250,6 +275,7 @@ export async function processAndUploadPreventiveEvidences(
         }
       }
 
+      notifyProgress();
       // 3. Fallback for non-base64 empty / other candidates
       return {
         id: item.id || Date.now() + i,

@@ -147,17 +147,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* Mobile Top Header */}
-      <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-800 text-white border-b border-blue-900/40 px-3 py-2 flex items-center justify-between shadow-xs">
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-1.5 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-          aria-label={isMobileMenuOpen ? "Tutup Navigasi" : "Buka Navigasi"}
-        >
-          {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+      <div className="md:hidden sticky top-0 z-40 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-800 text-white border-b border-blue-900/40 px-3 py-2.5 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-1.5 text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            aria-label={isMobileMenuOpen ? "Tutup Navigasi" : "Buka Navigasi"}
+          >
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <span className="font-bold text-sm tracking-tight text-white drop-shadow-xs">
+            X-Ray Reporting
+          </span>
+        </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/15 text-white border border-white/20">
+          <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-white/20 text-white border border-white/25 shadow-2xs">
             Shift {shift}
           </span>
         </div>
@@ -173,40 +178,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-16 md:w-20' : 'w-64'
-        } ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed md:sticky top-0 left-0 z-50 h-[100dvh] md:h-screen bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'w-16 md:w-20' : 'w-72 md:w-64 max-w-[85vw]'
+        } ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}`}
       >
         {/* Top Section */}
-        <div className="p-3 border-b border-slate-200 flex flex-col gap-2">
-          {/* Collapse Toggle Button (Desktop) */}
-          <div className={`hidden md:flex items-center ${isCollapsed ? 'justify-center' : 'justify-end'} px-1`}>
-            <button
-              onClick={toggleCollapse}
-              title={isCollapsed ? 'Buka Sidebar' : 'Ciutkan Sidebar'}
-              className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
-            >
-              {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-            </button>
+        <div className="p-3 border-b border-slate-200 flex flex-col gap-2 shrink-0">
+          {/* Collapse Toggle Button (Desktop) & Mobile Close */}
+          <div className="flex items-center justify-between px-1">
+            <span className="md:hidden text-xs font-bold text-slate-800 tracking-wide uppercase">
+              Menu Navigasi
+            </span>
+            <div className="flex items-center gap-1 ml-auto">
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="md:hidden p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                title="Tutup Menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <button
+                onClick={toggleCollapse}
+                title={isCollapsed ? 'Buka Sidebar' : 'Ciutkan Sidebar'}
+                className="hidden md:block p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+              >
+                {isCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           {/* User Session Status Box */}
           {isCollapsed ? (
             <div
               className="p-2 bg-slate-50 rounded-lg border border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-100 transition"
-              title={`Sesi: ${role === 'supervisor' ? 'Supervisor' : `Teknisi (${technicianNames.join(', ') || 'Belum'})`}\nShift ${shift} - ${formatIndonesianDate(operationalDate)}`}
+              title={`Sesi: ${role === 'supervisor' ? 'Supervisor' : 'Teknisi'}`}
               onClick={toggleCollapse}
             >
               {role === 'supervisor' ? (
-                <Shield className="w-4 h-4 text-amber-600 mb-0.5" />
+                <>
+                  <Shield className="w-4 h-4 text-amber-600 mb-0.5" />
+                  <span className="text-[9px] font-bold text-amber-700">SPV</span>
+                </>
               ) : (
-                <UserCheck className="w-4 h-4 text-emerald-600 mb-0.5" />
+                <>
+                  <UserCheck className="w-4 h-4 text-emerald-600 mb-0.5" />
+                  <span className="text-[9px] font-bold text-emerald-700">TEK</span>
+                </>
               )}
-              <span className="text-[9px] font-bold text-slate-700">S{shift}</span>
             </div>
           ) : (
             <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Sesi On-Duty
                 </span>
@@ -221,21 +243,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               </div>
 
-              <p className="text-xs font-bold text-slate-900 truncate" title={technicianNames.join(', ')}>
-                {technicianNames.length > 0
-                  ? technicianNames.join(', ')
-                  : role === 'supervisor'
-                  ? 'Supervisor On-Duty'
-                  : 'Belum ditentukan'}
-              </p>
-
-              <div className="flex items-center justify-between text-[10px] text-slate-600 mt-1.5 pt-1.5 border-t border-slate-200 font-medium">
-                <span className="font-semibold text-slate-700">Shift {shift}</span>
-                <span>{formatIndonesianDate(operationalDate)}</span>
-              </div>
-
               {/* Cloud Sync Status Indicator */}
-              <div className="mt-1.5 pt-1.5 border-t border-slate-200 flex flex-col gap-1 text-[10px]">
+              <div className="pt-1.5 border-t border-slate-200 flex flex-col gap-1 text-[10px]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     {isCloudMissing ? (
@@ -295,14 +304,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => handleSelectTab('dashboard')}
               title="Dashboard"
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
                 activeTab === 'dashboard'
                   ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <LayoutDashboard className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-500'}`} />
+                <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-500'}`} />
                 {!isCollapsed && <span>Dashboard Status</span>}
               </div>
             </button>
@@ -312,33 +321,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => handleSelectTab('preventive')}
             title="Inspeksi Preventif"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === 'preventive'
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <CheckSquare className={`w-4 h-4 ${activeTab === 'preventive' ? 'text-white' : 'text-slate-500'}`} />
+              <CheckSquare className={`w-4 h-4 shrink-0 ${activeTab === 'preventive' ? 'text-white' : 'text-slate-500'}`} />
               {!isCollapsed && <span>Inspeksi Preventif</span>}
             </div>
           </button>
 
-          {/* Corrective */}
-          <button
-            onClick={() => handleSelectTab('corrective')}
-            title="Laporan Corrective"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-              activeTab === 'corrective'
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Wrench className={`w-4 h-4 ${activeTab === 'corrective' ? 'text-white' : 'text-slate-500'}`} />
-              {!isCollapsed && <span>Laporan Corrective</span>}
-            </div>
-          </button>
+          {/* Corrective (Khusus Admin / Supervisor) */}
+          {role === 'supervisor' && (
+            <button
+              onClick={() => handleSelectTab('corrective')}
+              title="Laporan Corrective"
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
+                activeTab === 'corrective'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
+                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Wrench className={`w-4 h-4 shrink-0 ${activeTab === 'corrective' ? 'text-white' : 'text-slate-500'}`} />
+                {!isCollapsed && <span>Laporan Corrective</span>}
+              </div>
+            </button>
+          )}
 
           {/* Reports */}
           <button
@@ -348,113 +359,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onSelectReportSubTab('wa');
               }
             }}
-            title="Laporan & Ekspor"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'reports' && activeReportSubTab !== 'history'
+            title="Laporan Resmi"
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'reports'
                 ? 'bg-blue-600 text-white shadow-xs font-bold'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <FileText className={`w-4 h-4 ${activeTab === 'reports' && activeReportSubTab !== 'history' ? 'text-white' : 'text-slate-500'}`} />
+              <FileText className={`w-4 h-4 shrink-0 ${activeTab === 'reports' ? 'text-white' : 'text-slate-500'}`} />
               {!isCollapsed && <span>Laporan Resmi</span>}
             </div>
-          </button>
-
-          {/* Arsip Laporan per Tanggal */}
-          <button
-            onClick={() => {
-              handleSelectTab('reports');
-              if (onSelectReportSubTab) {
-                onSelectReportSubTab('history');
-              }
-            }}
-            title="Arsip Laporan per Tanggal"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'reports' && activeReportSubTab === 'history'
-                ? 'bg-blue-600 text-white shadow-xs font-bold'
-                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <History className={`w-4 h-4 ${activeTab === 'reports' && activeReportSubTab === 'history' ? 'text-white' : 'text-blue-600'}`} />
-              {!isCollapsed && <span>Arsip Laporan</span>}
-            </div>
-            {!isCollapsed && (
-              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                activeTab === 'reports' && activeReportSubTab === 'history'
-                  ? 'bg-white/20 text-white'
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                Histori
-              </span>
-            )}
           </button>
 
           {/* Profil & Riwayat Mesin (Timeline & Spesifikasi Alat) */}
           <button
             onClick={() => handleSelectTab('timeline')}
             title="Profil & Riwayat Mesin"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === 'timeline'
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Activity className={`w-4 h-4 ${activeTab === 'timeline' ? 'text-white' : 'text-slate-500'}`} />
+              <Activity className={`w-4 h-4 shrink-0 ${activeTab === 'timeline' ? 'text-white' : 'text-slate-500'}`} />
               {!isCollapsed && <span>Profil & Riwayat Mesin</span>}
             </div>
-            {!isCollapsed && (
-              <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded font-bold uppercase">
-                Profil
-              </span>
-            )}
           </button>
-
-          {/* Scan QR Mesin Button */}
-          {onOpenQrScanner && (
-            <button
-              onClick={() => {
-                onOpenQrScanner();
-                setIsMobileMenuOpen(false);
-              }}
-              title="Scan QR Mesin"
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-colors cursor-pointer text-slate-700 hover:bg-blue-50 hover:text-blue-700`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Camera className="w-4 h-4 text-blue-600" />
-                {!isCollapsed && <span>Scan QR Mesin</span>}
-              </div>
-              {!isCollapsed && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded font-bold uppercase">
-                  Scanner
-                </span>
-              )}
-            </button>
-          )}
-
-          {/* Cetak Label QR Mesin Button */}
-          {onOpenQrPrint && (
-            <button
-              onClick={() => {
-                onOpenQrPrint();
-                setIsMobileMenuOpen(false);
-              }}
-              title="Cetak Label QR Mesin"
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-colors cursor-pointer text-slate-700 hover:bg-indigo-50 hover:text-indigo-700`}
-            >
-              <div className="flex items-center gap-2.5">
-                <QrCode className="w-4 h-4 text-indigo-600" />
-                {!isCollapsed && <span>Cetak Label QR Mesin</span>}
-              </div>
-              {!isCollapsed && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold uppercase">
-                  Cetak
-                </span>
-              )}
-            </button>
-          )}
 
           {/* Master Data Dropdown Header - Supervisor Only */}
           {role === 'supervisor' && (
@@ -481,9 +413,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 {!isCollapsed && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded font-bold uppercase">
-                      Admin
-                    </span>
                     {isMasterOpen ? (
                       <ChevronDown className="w-4 h-4 text-slate-500" />
                     ) : (
@@ -499,91 +428,119 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {/* 1. Jadwal Shift */}
                   <button
                     onClick={() => handleSelectMasterSubItem('schedule')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'schedule'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <Calendar className={`w-3.5 h-3.5 ${activeTab === 'schedule' ? 'text-white' : 'text-slate-500'}`} />
+                    <Calendar className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'schedule' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Jadwal Shift Teknisi</span>
                   </button>
 
                   {/* 2. Equipment */}
                   <button
                     onClick={() => handleSelectMasterSubItem('equipment')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'master' && masterSubTab === 'equipment'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <Wrench className={`w-3.5 h-3.5 ${activeTab === 'master' && masterSubTab === 'equipment' ? 'text-white' : 'text-slate-500'}`} />
+                    <Wrench className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'master' && masterSubTab === 'equipment' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Daftar Unit Equipment</span>
                   </button>
 
                   {/* 3. Lokasi */}
                   <button
                     onClick={() => handleSelectMasterSubItem('location')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'master' && masterSubTab === 'location'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <MapPin className={`w-3.5 h-3.5 ${activeTab === 'master' && masterSubTab === 'location' ? 'text-white' : 'text-slate-500'}`} />
+                    <MapPin className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'master' && masterSubTab === 'location' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Lokasi Penempatan</span>
                   </button>
 
                   {/* 4. Jenis Mesin */}
                   <button
                     onClick={() => handleSelectMasterSubItem('type')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'master' && masterSubTab === 'type'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <Cpu className={`w-3.5 h-3.5 ${activeTab === 'master' && masterSubTab === 'type' ? 'text-white' : 'text-slate-500'}`} />
+                    <Cpu className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'master' && masterSubTab === 'type' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Jenis Fasilitas Alat</span>
                   </button>
 
                   {/* 5. Master Checklist */}
                   <button
                     onClick={() => handleSelectMasterSubItem('checklist')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'master' && masterSubTab === 'checklist'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <ListCheck className={`w-3.5 h-3.5 ${activeTab === 'master' && masterSubTab === 'checklist' ? 'text-white' : 'text-slate-500'}`} />
+                    <ListCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'master' && masterSubTab === 'checklist' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Item Parameter Checklist</span>
                   </button>
 
-                  {/* 6. Teknisi & Akun Pengguna */}
+                  {/* 6. Scan QR Mesin */}
+                  {onOpenQrScanner && (
+                    <button
+                      onClick={() => {
+                        onOpenQrScanner();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer text-slate-600 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    >
+                      <Camera className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+                      <span>Scan QR Mesin</span>
+                    </button>
+                  )}
+
+                  {/* 7. Cetak Label QR Mesin */}
+                  {onOpenQrPrint && (
+                    <button
+                      onClick={() => {
+                        onOpenQrPrint();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 font-medium"
+                    >
+                      <QrCode className="w-3.5 h-3.5 shrink-0 text-indigo-600" />
+                      <span>Cetak Label QR Mesin</span>
+                    </button>
+                  )}
+
+                  {/* 8. Teknisi & Akun Pengguna */}
                   <button
                     onClick={() => handleSelectMasterSubItem('technician')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'master' && masterSubTab === 'technician'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <UserCheck className={`w-3.5 h-3.5 ${activeTab === 'master' && masterSubTab === 'technician' ? 'text-white' : 'text-slate-500'}`} />
+                    <UserCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'master' && masterSubTab === 'technician' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Teknisi &amp; Akun User</span>
                   </button>
 
-                  {/* 7. Pengaturan Telegram Bot & Chat ID */}
+                  {/* 9. Pengaturan Telegram Bot & Chat ID */}
                   <button
                     onClick={() => handleSelectMasterSubItem('telegram')}
-                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`w-full flex items-center gap-2 px-3 py-2 md:px-2.5 md:py-1.5 rounded-lg md:rounded-md text-xs transition-colors cursor-pointer ${
                       activeTab === 'master' && masterSubTab === 'telegram'
                         ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium'
                     }`}
                   >
-                    <Send className={`w-3.5 h-3.5 ${activeTab === 'master' && masterSubTab === 'telegram' ? 'text-white' : 'text-slate-500'}`} />
+                    <Send className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'master' && masterSubTab === 'telegram' ? 'text-white' : 'text-slate-500'}`} />
                     <span>Pengaturan Telegram</span>
                   </button>
                 </div>
@@ -593,7 +550,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom Sidebar Action Footer */}
-        <div className={`p-2.5 border-t border-slate-200 bg-slate-50 space-y-1.5 ${isCollapsed ? 'px-1.5' : 'p-2.5'}`}>
+        <div className={`p-3 md:p-2.5 border-t border-slate-200 bg-slate-50 space-y-2 md:space-y-1.5 shrink-0 ${isCollapsed ? 'px-1.5' : 'p-3 md:p-2.5'}`}>
           {onOpenAttendanceModal && (
             <button
               onClick={() => {
@@ -601,9 +558,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 setIsMobileMenuOpen(false);
               }}
               title="Presensi Teknisi (Masuk / Pulang)"
-              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-1.5'} bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold rounded-lg text-xs transition-colors cursor-pointer`}
+              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3.5 py-2.5 md:py-1.5'} bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-300 font-semibold rounded-xl md:rounded-lg text-sm md:text-xs transition-all cursor-pointer shadow-2xs`}
             >
-              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <UserCheck className="w-4 h-4 md:w-3.5 md:h-3.5 text-emerald-600 shrink-0" />
               {!isCollapsed && <span>Presensi Masuk / Pulang</span>}
             </button>
           )}
@@ -615,40 +572,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 setIsMobileMenuOpen(false);
               }}
               title="Pengaturan Bot Telegram"
-              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-1.5'} bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-semibold rounded-lg text-xs transition-colors cursor-pointer`}
+              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3.5 py-2.5 md:py-1.5'} bg-sky-50 hover:bg-sky-100 active:bg-sky-200 text-sky-800 border border-sky-300 font-semibold rounded-xl md:rounded-lg text-sm md:text-xs transition-all cursor-pointer shadow-2xs`}
             >
-              <Send className="w-3.5 h-3.5 text-sky-600" />
+              <Send className="w-4 h-4 md:w-3.5 md:h-3.5 text-sky-600 shrink-0" />
               {!isCollapsed && <span>Bot Telegram</span>}
             </button>
           )}
 
-          {role === 'supervisor' ? (
-            <button
-              onClick={onLogoutSupervisor}
-              title="Keluar Mode Supervisor"
-              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-1.5'} bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold rounded-lg text-xs transition-colors cursor-pointer`}
-            >
-              <Shield className="w-3.5 h-3.5 text-amber-700" />
-              {!isCollapsed && <span>Keluar Supervisor</span>}
-            </button>
-          ) : (
+          {role !== 'supervisor' && (
             <button
               onClick={onOpenSupervisorLogin}
               title="Akses Supervisor"
-              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-1.5'} bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-semibold rounded-lg text-xs transition-colors cursor-pointer shadow-2xs`}
+              className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3.5 py-2.5 md:py-1.5'} bg-white hover:bg-slate-100 active:bg-slate-200 text-slate-800 border border-slate-300 font-semibold rounded-xl md:rounded-lg text-sm md:text-xs transition-all cursor-pointer shadow-2xs`}
             >
-              <Key className="w-3.5 h-3.5 text-slate-700" />
+              <Key className="w-4 h-4 md:w-3.5 md:h-3.5 text-slate-700 shrink-0" />
               {!isCollapsed && <span>Akses Supervisor</span>}
             </button>
           )}
 
           <button
             onClick={onLogout}
-            title="Keluar Sesi"
-            className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3 py-1.5'} text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 font-semibold rounded-lg text-xs transition-colors cursor-pointer`}
+            title="Keluar / Logout"
+            className={`w-full flex items-center justify-center gap-2 ${isCollapsed ? 'p-2' : 'px-3.5 py-2 md:py-1.5'} text-rose-700 hover:text-rose-800 bg-rose-50/70 hover:bg-rose-100 active:bg-rose-200 border border-rose-200 font-bold rounded-xl md:rounded-lg text-sm md:text-xs transition-all cursor-pointer shadow-2xs`}
           >
-            <LogOut className="w-3.5 h-3.5" />
-            {!isCollapsed && <span>Keluar Sistem</span>}
+            <LogOut className="w-4 h-4 md:w-3.5 md:h-3.5 shrink-0" />
+            {!isCollapsed && <span>Logout / Keluar</span>}
           </button>
         </div>
       </aside>

@@ -54,16 +54,22 @@ export function getEquipmentPrefillData(
   // 1. Search for the most recent entry FOR THIS SAME EQUIPMENT with valid measurements
   const matchingEntries = allEntries.filter(
     (e) =>
-      e.equipment_id === eqId &&
+      (Number(e.equipment_id) === Number(eqId) ||
+       String(e.equipment_id) === String(eqId) ||
+       (e.equipment_code && equipment.equipment_code && e.equipment_code === equipment.equipment_code) ||
+       (e.equipment_name && equipment.name && e.equipment_name.trim().toLowerCase() === equipment.name.trim().toLowerCase())) &&
       Array.isArray(e.measurements) &&
       e.measurements.length > 0
   );
 
-  // Sort descending by submitted_at / created_at
+  // Sort descending by operational_date, submitted_at, created_at, or id
   matchingEntries.sort((a, b) => {
-    const timeA = a.created_at || a.submitted_at || '';
-    const timeB = b.created_at || b.submitted_at || '';
-    return timeB.localeCompare(timeA);
+    const timeA = a.operational_date || a.created_at || a.submitted_at || '';
+    const timeB = b.operational_date || b.created_at || b.submitted_at || '';
+    if (timeB !== timeA) {
+      return timeB.localeCompare(timeA);
+    }
+    return (b.id || 0) - (a.id || 0);
   });
 
   const latestEntry = matchingEntries[0];

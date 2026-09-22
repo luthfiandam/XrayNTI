@@ -642,16 +642,18 @@ export default function App() {
               frequencies={masterData.frequencies}
               checklistItems={masterData.checklistItems}
               preventiveEntries={activePreventiveEntries}
+              allPreventiveEntries={syncData.preventiveEntries}
               preSelectedEquipmentId={preSelectedEquipmentId}
               onClearPreSelectedEquipmentId={() => setPreSelectedEquipmentId(null)}
               onSubmitEntry={syncData.handleSubmitPreventiveEntry}
               onBackToDashboard={() => setActiveTab('dashboard')}
               operationalDate={shiftSession.currentSession.operational_date}
               shift={shiftSession.currentSession.shift}
+              isViewerOnly={!shiftSession.isOnDuty}
             />
           )}
 
-          {activeTab === 'corrective' && (
+          {activeTab === 'corrective' && authState.role === 'supervisor' && (
             <CorrectiveView
               correctiveReports={activeCorrectiveReports}
               equipments={masterData.equipments}

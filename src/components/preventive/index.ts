@@ -6,3 +6,4 @@ export * from './MeasurementSection';
 export * from './ChecklistSection';
 export * from './InspectionSummarySection';
 export * from './PhotoCollageModal';
+export * from './UploadProgressModal';

@@ -22,6 +22,7 @@ interface InspectionSummarySectionProps {
   isSubmitting: boolean;
   hasExistingEntry: boolean;
   mobileStep: number;
+  isViewerOnly?: boolean;
   onCreateCollage: () => void;
   onPrevStep: () => void;
   onNextStep: () => void;
@@ -40,6 +41,7 @@ export const InspectionSummarySection: React.FC<InspectionSummarySectionProps> =
   isSubmitting,
   hasExistingEntry,
   mobileStep,
+  isViewerOnly = false,
   onCreateCollage,
   onPrevStep,
   onNextStep,
@@ -135,6 +137,7 @@ interface InspectionSummaryCardProps {
   isSubmitting: boolean;
   hasExistingEntry: boolean;
   mobileStep: number;
+  isViewerOnly?: boolean;
   onCreateCollage: () => void;
 }
 
@@ -147,6 +150,7 @@ export const InspectionSummaryCard: React.FC<InspectionSummaryCardProps> = ({
   isSubmitting,
   hasExistingEntry,
   mobileStep,
+  isViewerOnly = false,
   onCreateCollage,
 }) => {
   return (
@@ -209,6 +213,13 @@ export const InspectionSummaryCard: React.FC<InspectionSummaryCardProps> = ({
           </p>
         </div>
 
+        {/* View-Only Mode Warning */}
+        {isViewerOnly && (
+          <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 font-medium">
+            🔒 <strong>Mode Lihat (Hanya Baca)</strong>: Anda sedang tidak bertugas pada jadwal shift ini sehingga tidak dapat mengubah atau mengirim laporan preventif.
+          </div>
+        )}
+
         {/* Submit & Draft Action Buttons */}
         <div className="space-y-2 pt-1">
           <button
@@ -221,9 +232,9 @@ export const InspectionSummaryCard: React.FC<InspectionSummaryCardProps> = ({
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isViewerOnly}
             className={`hidden lg:flex w-full py-2.5 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md items-center justify-center gap-2 text-white disabled:opacity-60 disabled:cursor-not-allowed ${
-              isSubmitting
+              isSubmitting || isViewerOnly
                 ? 'bg-slate-500 cursor-not-allowed shadow-none'
                 : hasExistingEntry
                 ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200 cursor-pointer'
@@ -232,7 +243,9 @@ export const InspectionSummaryCard: React.FC<InspectionSummaryCardProps> = ({
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>
-              {isSubmitting
+              {isViewerOnly
+                ? 'Hanya Baca (Bukan Shift Anda)'
+                : isSubmitting
                 ? 'Menyimpan...'
                 : hasExistingEntry
                 ? 'Update Data Laporan'
@@ -249,6 +262,7 @@ interface MobileBottomActionsProps {
   mobileStep: number;
   isSubmitting: boolean;
   hasExistingEntry: boolean;
+  isViewerOnly?: boolean;
   onPrevStep: () => void;
   onNextStep: () => void;
   onCreateCollage?: () => void;
@@ -258,6 +272,7 @@ export const MobileBottomActions: React.FC<MobileBottomActionsProps> = ({
   mobileStep,
   isSubmitting,
   hasExistingEntry,
+  isViewerOnly = false,
   onPrevStep,
   onNextStep,
 }) => {
@@ -290,9 +305,9 @@ export const MobileBottomActions: React.FC<MobileBottomActionsProps> = ({
           ) : (
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isViewerOnly}
               className={`px-3.5 py-2 font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1 text-white shrink-0 disabled:opacity-60 disabled:cursor-not-allowed ${
-                isSubmitting
+                isSubmitting || isViewerOnly
                   ? 'bg-slate-500 cursor-not-allowed shadow-none'
                   : hasExistingEntry
                   ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200 cursor-pointer'
@@ -301,7 +316,9 @@ export const MobileBottomActions: React.FC<MobileBottomActionsProps> = ({
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>
-                {isSubmitting
+                {isViewerOnly
+                  ? 'Lihat Saja'
+                  : isSubmitting
                   ? 'Menyimpan...'
                   : hasExistingEntry
                   ? 'Update Laporan'

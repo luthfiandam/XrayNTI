@@ -124,6 +124,8 @@ export interface PreventiveEntry {
   dataset_id?: string;
   preventive_session_id: number;
   equipment_id: number;
+  equipment_code?: string;
+  equipment_name?: string;
   checklist_frequency_id: number;
   view_type?: 'single' | 'dual';
   sequence: number; // Urutan submit dalam shift

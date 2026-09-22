@@ -9,12 +9,12 @@ import {
   Mail,
   Loader2,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import {
   signInTechnicianWithCredentials,
   signInSupervisorFast,
 } from '../services/authService';
+import logoNararya from '../assets/logopt.png';
 
 interface LoginScreenProps {
   technicians: Technician[];
@@ -112,15 +112,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
       {/* Main Login Card */}
       <div className="relative z-10 w-full max-w-sm sm:max-w-md bg-slate-800/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/80 overflow-hidden my-auto">
-        {/* Header Banner */}
-        <div className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 p-5 sm:p-6 text-white text-center">
-          <div className="w-12 h-12 mx-auto mb-2.5 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-inner">
-            <ShieldCheck className="w-6 h-6 text-sky-200" />
+        {/* Header Banner - Clean White with Nararya Logo */}
+        <div className="bg-white px-6 py-7 text-center border-b border-slate-200">
+          <div className="flex justify-center items-center mb-4">
+            <img
+              src={logoNararya}
+              alt="PT. Nararya Teknologi Indonesia"
+              className="h-28 sm:h-36 w-auto object-contain max-w-[92%]"
+            />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 uppercase">
             MAINTENANCE OPERATIONS
           </h1>
-          <p className="text-xs text-blue-100 font-medium mt-1">
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
             Sistem Pemeliharaan Peralatan Bandara
           </p>
         </div>

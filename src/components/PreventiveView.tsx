@@ -28,6 +28,8 @@ import {
   InspectionSummaryCard,
   MobileBottomActions,
   PhotoCollageModal,
+  UploadProgressModal,
+  UploadModalState,
 } from './preventive';
 
 interface PreventiveViewProps {
@@ -37,12 +39,14 @@ interface PreventiveViewProps {
   frequencies: ChecklistFrequency[];
   checklistItems: ChecklistItem[];
   preventiveEntries: PreventiveEntry[];
+  allPreventiveEntries?: PreventiveEntry[];
   preSelectedEquipmentId?: number | null;
   onClearPreSelectedEquipmentId?: () => void;
   onSubmitEntry: (entry: Omit<PreventiveEntry, 'id'>) => void | Promise<void>;
   onBackToDashboard: () => void;
   operationalDate?: string;
   shift?: string;
+  isViewerOnly?: boolean;
 }
 
 export const PreventiveView: React.FC<PreventiveViewProps> = ({
@@ -52,12 +56,14 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
   frequencies,
   checklistItems,
   preventiveEntries,
+  allPreventiveEntries,
   preSelectedEquipmentId,
   onClearPreSelectedEquipmentId,
   onSubmitEntry,
   onBackToDashboard,
   operationalDate = '',
   shift = 'Shift 1',
+  isViewerOnly = false,
 }) => {
   // Navigation & Machine Selection State
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | null>(
@@ -91,6 +97,13 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
   const [isGeneratingCollage, setIsGeneratingCollage] = useState(false);
   const [showCollageModal, setShowCollageModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgressState, setUploadProgressState] = useState<UploadModalState>({
+    isOpen: false,
+    stage: 'idle',
+    currentPhotoIndex: 0,
+    totalPhotos: 0,
+    percent: 0,
+  });
   const [toastNotification, setToastNotification] = useState<{
     show: boolean;
     message: string;
@@ -224,7 +237,8 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
       }
     } else {
       // Prefill previous measurement / view_type for this specific equipment, or fallback to equipment master default
-      const prefill = getEquipmentPrefillData(selectedEquipment, preventiveEntries);
+      const prefillSourceEntries = allPreventiveEntries && allPreventiveEntries.length > 0 ? allPreventiveEntries : preventiveEntries;
+      const prefill = getEquipmentPrefillData(selectedEquipment, prefillSourceEntries);
       setViewType(prefill.viewType);
       setGenAMeasurement(prefill.genAMeasurement);
       setGenBMeasurement(prefill.genBMeasurement);
@@ -232,7 +246,7 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
       setNotes('Sudah dilakukan kalibrasi dan pembersihan. Equipment bisa digunakan dengan normal.');
       setOverallStatus('OK');
     }
-  }, [selectedEquipmentId, selectedEquipment, preventiveEntries, selectedFrequencyId, currentPeriodKey, shift]);
+  }, [selectedEquipmentId, selectedEquipment, preventiveEntries, allPreventiveEntries, selectedFrequencyId, currentPeriodKey, shift]);
 
   // Filter checklist items by selected equipment type and selected frequency
   const relevantChecklistItems = checklistItems.filter(
@@ -512,12 +526,30 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
 
     if (isSubmitting) return;
 
+    if (isViewerOnly) {
+      toast.warning('Akses Terbatas', 'Anda tidak sedang bertugas pada shift saat ini. Formulir preventif dalam mode hanya baca.');
+      return;
+    }
+
     if (!selectedEquipment) {
       toast.info('Pilih Mesin', 'Silakan pilih mesin peralatan terlebih dahulu.');
       return;
     }
 
     setIsSubmitting(true);
+    const photos = photoDocs.bebersih || [];
+    const totalPhotosToUpload = photos.length > 0 ? photos.length + 1 : 0; // individual photos + collage
+
+    setUploadProgressState({
+      isOpen: true,
+      stage: photos.length > 0 ? 'collage' : 'uploading',
+      currentPhotoIndex: 0,
+      totalPhotos: totalPhotosToUpload,
+      percent: photos.length > 0 ? 10 : 30,
+      equipmentName: selectedEquipment.name,
+      equipmentCode: selectedEquipment.equipment_code,
+    });
+
     try {
       const nextSequence = preventiveEntries.length + 1;
 
@@ -587,7 +619,6 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
         equipmentName: selectedEquipment?.name || 'Equipment',
       });
 
-      const photos = photoDocs.bebersih || [];
       if (photos.length > 0) {
         // Collect individual photos first
         photos.forEach((url, idx) => {
@@ -600,6 +631,12 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
         });
 
         try {
+          setUploadProgressState((prev) => ({
+            ...prev,
+            stage: 'collage',
+            percent: 20,
+          }));
+
           const collageResultUrl = await generatePhotoCollageUrl({
             equipmentName: selectedEquipment.name,
             equipmentCode: selectedEquipment.equipment_code,
@@ -636,12 +673,30 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
       let cleanEvidencesList = evidencesList;
       let driveFolderUrl: string | undefined = undefined;
       if (evidencesList.length > 0) {
+        setUploadProgressState((prev) => ({
+          ...prev,
+          stage: 'uploading',
+          currentPhotoIndex: 0,
+          totalPhotos: evidencesList.length,
+          percent: 25,
+        }));
+
         try {
           const uploadRes = await processAndUploadPreventiveEvidences(evidencesList, driveFolderPath, {
             equipmentCode: selectedEquipment.equipment_code,
             locationName: selectedEquipment.name,
             operationalDate: operationalDate,
             timeStr: timeString,
+            onProgress: (prog) => {
+              setUploadProgressState((prev) => ({
+                ...prev,
+                stage: 'uploading',
+                currentPhotoIndex: prog.completed,
+                totalPhotos: prog.total,
+                currentItemName: prog.currentItemName,
+                percent: Math.min(90, 25 + Math.round((prog.completed / Math.max(1, prog.total)) * 65)),
+              }));
+            },
           });
 
           if (uploadRes.evidences && uploadRes.evidences.length > 0) {
@@ -657,6 +712,12 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
           console.warn('[PreventiveView] Drive upload failed, continuing with local evidences:', uploadErr);
         }
       }
+
+      setUploadProgressState((prev) => ({
+        ...prev,
+        stage: 'saving',
+        percent: 95,
+      }));
 
       const newEntry: Omit<PreventiveEntry, 'id'> & { id?: number; folder_path?: string; folder_url?: string; drive_folder_url?: string } = {
         id: existingEntry?.id,
@@ -683,6 +744,21 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
       const isEdit = Boolean(existingEntry);
       await onSubmitEntry(newEntry);
 
+      setUploadProgressState((prev) => ({
+        ...prev,
+        stage: 'complete',
+        percent: 100,
+      }));
+
+      // Short delay for visual completion feedback
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      setUploadProgressState((prev) => ({
+        ...prev,
+        isOpen: false,
+        stage: 'idle',
+      }));
+
       // Reset form states & return to equipment list
       setIsMachineSelected(false);
       setSelectedEquipmentId(null);
@@ -690,6 +766,11 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
       setPhotoDocs({ bebersih: [] });
     } catch (err: any) {
       console.error('Preventive submission error:', err);
+      setUploadProgressState((prev) => ({
+        ...prev,
+        stage: 'error',
+        errorMessage: err?.message || 'Terjadi kesalahan saat menyimpan laporan.',
+      }));
       toast.error('Gagal Menyimpan Checklist', err?.message || 'Terjadi kesalahan saat menyimpan laporan.');
     } finally {
       setIsSubmitting(false);
@@ -877,6 +958,7 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
             isSubmitting={isSubmitting}
             hasExistingEntry={Boolean(existingEntry)}
             mobileStep={mobileStep}
+            isViewerOnly={isViewerOnly}
             onCreateCollage={handleCreateCollage}
             onPrevStep={handlePrevStep}
             onNextStep={handleNextStep}
@@ -893,6 +975,7 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
           isSubmitting={isSubmitting}
           hasExistingEntry={Boolean(existingEntry)}
           mobileStep={mobileStep}
+          isViewerOnly={isViewerOnly}
           onCreateCollage={handleCreateCollage}
         />
 
@@ -901,6 +984,7 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
           mobileStep={mobileStep}
           isSubmitting={isSubmitting}
           hasExistingEntry={Boolean(existingEntry)}
+          isViewerOnly={isViewerOnly}
           onPrevStep={handlePrevStep}
           onNextStep={handleNextStep}
           onCreateCollage={handleCreateCollage}
@@ -920,6 +1004,12 @@ export const PreventiveView: React.FC<PreventiveViewProps> = ({
         collageUrl={collageUrl}
         selectedEquipment={selectedEquipment}
         onClose={() => setShowCollageModal(false)}
+      />
+
+      {/* FULLSCREEN UPLOAD PROGRESS & WAKELOCK MODAL */}
+      <UploadProgressModal
+        state={uploadProgressState}
+        onClose={() => setUploadProgressState((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

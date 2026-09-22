@@ -17,6 +17,7 @@ import {
   getStoredTelegramConfig,
 } from '../services/telegramService';
 import { toast } from './Toast';
+import { CorrectiveReportsTable } from './corrective/CorrectiveReportsTable';
 import {
   Wrench,
   Plus,
@@ -963,131 +964,16 @@ Notes : ${data.notes || '-'}`;
         </div>
       )}
 
-      {/* List of Corrective Reports History */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-xs">
-        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
-          <span>Riwayat Laporan Corrective Maintenance</span>
-          <span>{correctiveReports.length} Laporan</span>
-        </h3>
-
-        <div className="space-y-3">
-          {correctiveReports.length > 0 ? (
-            correctiveReports.map((report) => {
-              const eq = (equipments || []).find((e) => e && e.id === report.equipment_id);
-              const loc = (locations || []).find((l) => l && l.id === report.location_id);
-
-              const nowObj = new Date(report.corrective_date || Date.now());
-              const reportWaText = buildWhatsAppText({
-                dateObj: nowObj,
-                startTime: report.start_time || '13.30',
-                endTime: report.end_time || '14.00',
-                technicians: report.technicians || [report.created_by],
-                equipmentName: eq?.name || 'Security Equipment',
-                problem: report.problem_description,
-                action: report.action_taken,
-                resultText: report.result_text || 'Sudah bisa digunakan dengan normal 🙏🏻',
-                notes: report.notes || '-',
-              });
-
-              return (
-                <div
-                  key={report.id}
-                  className="p-4 border border-slate-200/80 rounded-2xl bg-white hover:border-indigo-200 transition-all space-y-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-100">
-                        {report.corrective_code}
-                      </span>
-                      <span className="font-extrabold text-sm text-slate-900">{eq?.name}</span>
-                      <span className="text-xs text-slate-400">({loc?.name})</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-medium">
-                        {formatIndonesianDate(report.corrective_date, { shortMonth: true })} • {formatTimeRange(report.start_time, report.end_time)}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                          report.result === 'Resolved'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {report.result}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <strong className="text-slate-400 block mb-0.5 uppercase tracking-wider text-[10px]">
-                        Kerusakan:
-                      </strong>
-                      <p className="text-slate-800 font-medium">{report.problem_description}</p>
-                    </div>
-
-                    <div>
-                      <strong className="text-slate-400 block mb-0.5 uppercase tracking-wider text-[10px]">
-                        Tindakan Perbaikan:
-                      </strong>
-                      <p className="text-slate-800 font-medium whitespace-pre-line">
-                        {report.action_taken}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Evidences / Photos attached */}
-                  {report.evidences && report.evidences.length > 0 && (
-                    <div className="pt-2">
-                      <strong className="text-slate-400 block mb-1.5 text-[10px] uppercase tracking-wider">
-                        Foto Dokumentasi ({report.evidences.length} Foto):
-                      </strong>
-                      <div className="flex flex-wrap gap-2">
-                        {report.evidences.map((imgUrl, i) => (
-                          <a
-                            key={i}
-                            href={imgUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="w-12 h-12 rounded-xl overflow-hidden border border-slate-200 block bg-slate-100 hover:opacity-90 transition-opacity"
-                          >
-                            <img
-                              src={imgUrl}
-                              alt={`Evidence ${i + 1}`}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500">
-                    <div>
-                      Teknisi: <strong className="text-slate-800">{report.created_by}</strong>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setGeneratedReportText(reportWaText)}
-                      className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-full text-xs transition-all inline-flex items-center justify-center gap-1.5 border border-emerald-200/80 cursor-pointer self-start sm:self-auto"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Lihat / Salin Format WA</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="p-8 text-center text-xs text-slate-400 italic">
-              Belum ada riwayat laporan corrective maintenance.
-            </div>
-          )}
-        </div>
-      </div>
+      {/* List of Corrective Reports History & Filterable Table */}
+      <CorrectiveReportsTable
+        correctiveReports={correctiveReports}
+        equipments={equipments}
+        equipmentTypes={equipmentTypes}
+        locations={locations}
+        onSelectReportForWa={(_report, formattedWaText) => {
+          setGeneratedReportText(formattedWaText);
+        }}
+      />
     </div>
   );
 };
