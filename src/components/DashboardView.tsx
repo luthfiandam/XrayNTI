@@ -364,14 +364,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
-            {countByType.map((item) => (
-              <span
-                key={item.type.id}
-                className="text-[10px] font-semibold px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-700 rounded"
-              >
-                {item.type.code}: <strong>{item.count}</strong>
-              </span>
+          <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-3 text-xs text-slate-600 flex-wrap">
+            {countByType.map((item, idx) => (
+              <React.Fragment key={item.type.id}>
+                {idx > 0 && <span className="text-slate-300 font-mono">·</span>}
+                <span className="font-medium">
+                  {item.type.code}: <strong className="text-slate-900 font-mono tabular-nums">{item.count}</strong>
+                </span>
+              </React.Fragment>
             ))}
           </div>
         </div>
@@ -500,8 +500,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="flex items-center gap-1.5 text-xs font-semibold">
                       {isDone ? (
                         <>
-                          <span className="text-emerald-800 bg-emerald-50 px-2 py-1 rounded text-[11px] font-bold border border-emerald-300 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Selesai
+                          <span className="text-emerald-700 font-semibold text-xs flex items-center gap-1 px-1.5 py-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Selesai
                           </span>
                           {role === 'supervisor' && onDeletePreventiveEntry && (
                             <button
@@ -518,7 +518,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           )}
                         </>
                       ) : (
-                        <span className="text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-colors shadow-xs shadow-blue-500/20">
+                        <span className="text-white bg-slate-900 hover:bg-slate-800 flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer shadow-2xs">
                           Inspeksi <ChevronRight className="w-3.5 h-3.5" />
                         </span>
                       )}

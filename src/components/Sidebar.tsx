@@ -319,9 +319,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => handleSelectTab('dashboard')}
               title="Dashboard"
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'dashboard'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
+                  ? 'bg-slate-900 text-white font-bold shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
               }`}
             >
@@ -336,9 +336,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => handleSelectTab('preventive')}
             title="Inspeksi Preventif"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'preventive'
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
+                ? 'bg-slate-900 text-white font-bold shadow-2xs'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
             }`}
           >
@@ -353,9 +353,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={() => handleSelectTab('corrective')}
               title="Laporan Corrective"
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'corrective'
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
+                  ? 'bg-slate-900 text-white font-bold shadow-2xs'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
               }`}
             >
@@ -375,9 +375,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }
             }}
             title="Laporan Resmi"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-all cursor-pointer ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'reports'
-                ? 'bg-blue-600 text-white shadow-xs font-bold'
+                ? 'bg-slate-900 text-white font-bold shadow-2xs'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
             }`}
           >
@@ -391,9 +391,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => handleSelectTab('timeline')}
             title="Profil & Riwayat Mesin"
-            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5 md:px-3 md:py-2'} rounded-xl md:rounded-lg text-sm md:text-xs font-semibold transition-colors cursor-pointer ${
+            className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2'} rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               activeTab === 'timeline'
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/25 font-bold'
+                ? 'bg-slate-900 text-white font-bold shadow-2xs'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
             }`}
           >
